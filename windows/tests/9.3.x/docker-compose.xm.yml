@@ -5,6 +5,7 @@ services:
     image: ${REGISTRY}sitecore-xm-sqldev:${SITECORE_VERSION}-windowsservercore-${WINDOWSSERVERCORE_VERSION}
     volumes:
       - .\data\sql:C:\Data
+    isolation: ${ISOLATION}
     mem_limit: 2GB
     ports:
       - "44010:1433"
@@ -16,6 +17,7 @@ services:
     image: ${REGISTRY}sitecore-xm-solr:${SITECORE_VERSION}-nanoserver-${NANOSERVER_VERSION}
     volumes:
       - .\data\solr:C:\Data
+    isolation: ${ISOLATION}
     mem_limit: 1GB
     ports:
       - "44011:8983"
@@ -24,9 +26,10 @@ services:
 
   cd:
     image: ${REGISTRY}sitecore-xm-cd:${SITECORE_VERSION}-windowsservercore-${WINDOWSSERVERCORE_VERSION}
-    entrypoint: powershell.exe -Command "& C:\\tools\\entrypoints\\iis\\Development.ps1"
+    entrypoint: powershell.exe -Command "& C:\\tools\\entrypoints\\iis\\Production.ps1 -OutputToLogstash"
     ports:
       - "44002:80"
+    isolation: ${ISOLATION}
     environment:
       SITECORE_LICENSE: ${SITECORE_LICENSE}
       SITECORE_APPSETTINGS_ROLE:DEFINE: ContentDelivery
@@ -45,9 +48,10 @@ services:
 
   cm:
     image: ${REGISTRY}sitecore-xm-cm:${SITECORE_VERSION}-windowsservercore-${WINDOWSSERVERCORE_VERSION}
-    entrypoint: powershell.exe -Command "& C:\\tools\\entrypoints\\iis\\Development.ps1"
+    entrypoint: powershell.exe -Command "& C:\\tools\\entrypoints\\iis\\Production.ps1 -OutputToLogstash"
     ports:
       - "44001:80"
+    isolation: ${ISOLATION}
     environment:
       SITECORE_LICENSE: ${SITECORE_LICENSE}
       SITECORE_APPSETTINGS_ROLE:DEFINE: ContentManagement, Indexing
@@ -69,7 +73,38 @@ services:
       solr:
         condition: service_started
 
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELK_Version}
+    environment:
+      - discovery.type=single-node
+    ports:
+      - 9200:9200
+    mem_limit: 2gb
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:${ELK_Version}
+    environment:
+      - discovery.type=single-node
+    ports:
+      - 5601:5601
+    depends_on:
+      - elasticsearch
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:${ELK_Version}
+    ports:
+      - "5000:5000/tcp"
+      - "5000:5000/udp"
+      - "9600:9600"
+    mem_limit: 2gb
+    depends_on:
+      - elasticsearch
+
 networks:
   default:
     external:
       name: nat
+
+volumes:
+  elasticsearch:

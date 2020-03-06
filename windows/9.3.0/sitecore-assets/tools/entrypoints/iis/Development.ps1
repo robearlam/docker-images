@@ -1,7 +1,11 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $false)]
-    [hashtable]$WatchDirectoryParameters
+    [hashtable]$WatchDirectoryParameters,
+    [Parameter(Mandatory = $false)]
+    [switch]$OutputToLogstash,
+    [Parameter(Mandatory = $false)]
+    [switch]$LogstashHost = "logstash"
 )
 
 # setup
@@ -190,8 +194,14 @@ while ($true)
 # wait for application pool to start
 Wait-WebItemState -IISPath "IIS:\AppPools\DefaultAppPool" -State "Started"
 
+$filebeatConfig = "\filebeat.yml"
+if ($OutputToLogstash)
+{
+    $filebeatConfig = "\filebeat.logstash.yml"
+}
+
 # print ready message
 Write-Host "$(Get-Date -Format $timeFormat): Sitecore ready!"
 
 # start filebeat.exe in foreground
-& "C:\tools\bin\filebeat\filebeat.exe" -c (Join-Path $PSScriptRoot "\filebeat.yml")
+& "C:\tools\bin\filebeat\filebeat.exe" -c (Join-Path $PSScriptRoot $filebeatConfig)
