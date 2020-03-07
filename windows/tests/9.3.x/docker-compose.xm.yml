@@ -26,7 +26,7 @@ services:
 
   cd:
     image: ${REGISTRY}sitecore-xm-cd:${SITECORE_VERSION}-windowsservercore-${WINDOWSSERVERCORE_VERSION}
-    entrypoint: powershell.exe -Command "& C:\\tools\\entrypoints\\iis\\Production.ps1 -OutputToLogstash"
+    entrypoint: powershell.exe -Command "& C:\\tools\\entrypoints\\iis\\Production.ps1"
     ports:
       - "44002:80"
     isolation: ${ISOLATION}
@@ -48,7 +48,7 @@ services:
 
   cm:
     image: ${REGISTRY}sitecore-xm-cm:${SITECORE_VERSION}-windowsservercore-${WINDOWSSERVERCORE_VERSION}
-    entrypoint: powershell.exe -Command "& C:\\tools\\entrypoints\\iis\\Production.ps1 -OutputToLogstash"
+    entrypoint: powershell.exe -Command "& C:\\tools\\entrypoints\\iis\\Production.ps1"
     ports:
       - "44001:80"
     isolation: ${ISOLATION}
@@ -76,30 +76,40 @@ services:
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:${ELK_Version}
+    container_name: elasticsearch
     environment:
-      - discovery.type=single-node
+        - node.name=node
+        - cluster.name=elasticsearch-default
+        - bootstrap.memory_lock=true
+        - discovery.type=single-node
+        - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+        - "xpack.security.enabled=false"
     ports:
-      - 9200:9200
+        - "9200:9200"
+    expose:
+        - "9200"
     mem_limit: 2gb
 
   kibana:
-    image: docker.elastic.co/kibana/kibana:${ELK_Version}
-    environment:
-      - discovery.type=single-node
-    ports:
-      - 5601:5601
-    depends_on:
-      - elasticsearch
+      image: docker.elastic.co/kibana/kibana:${ELK_Version}
+      container_name: kibana
+      ports:
+          - "5601:5601"
+      expose:
+          - "5601"
+      depends_on:
+          - elasticsearch
+      mem_limit: 2gb
 
   logstash:
-    image: docker.elastic.co/logstash/logstash:${ELK_Version}
-    ports:
-      - "5000:5000/tcp"
-      - "5000:5000/udp"
-      - "9600:9600"
-    mem_limit: 2gb
-    depends_on:
-      - elasticsearch
+      image: docker.elastic.co/logstash/logstash:${ELK_Version}
+      ports:
+          - "5000:5000/tcp"
+          - "5000:5000/udp"
+          - "9600:9600"
+      depends_on:
+          - elasticsearch
+      mem_limit: 2gb
 
 networks:
   default:

@@ -124,4 +124,6 @@ Wait-WebItemState -IISPath "IIS:\AppPools\DefaultAppPool" -State "Started"
 Write-Host ("$(Get-Date -Format $timeFormat): Sitecore ready!")
 
 # start filebeat.exe in foreground
+& "C:\tools\bin\filebeat\filebeat.exe" -c (Join-Path $PSScriptRoot "\filebeat.yml") modules enable elasticsearch
+& "C:\tools\bin\filebeat\filebeat.exe" -c (Join-Path $PSScriptRoot "\filebeat.yml") setup
 & "C:\tools\bin\filebeat\filebeat.exe" -c (Join-Path $PSScriptRoot "\filebeat.yml")

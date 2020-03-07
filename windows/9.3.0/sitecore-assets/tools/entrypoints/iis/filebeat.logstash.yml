@@ -1,3 +1,11 @@
+
+filebeat.config.modules:
+  # Glob pattern for configuration loading
+  path: ${path.config}/modules.d/*.yml
+
+  # Set to true to enable config reloading
+  reload.enabled: false
+
 filebeat.modules:
 - module: iis
   access:
@@ -13,15 +21,8 @@ filebeat.inputs:
   max_message_size: 100KiB
   host: "127.0.0.1:7777"
 
-output.console:
-  pretty: true
-  codec.format:
-    string: '%{[message]}'
-
-output.logstash:
-  # The Logstash hosts
-  hosts: ["logstash:5044"]
-
 output.elasticsearch:
-  hosts: ["https://elasticsearch:9200"]
-  index: "filebeat-%{[agent.version]}-%{+yyyy.MM.dd}"
+  hosts: ["elasticsearch:9200"]
+
+setup.kibana:
+  host: "kibana:5601"
