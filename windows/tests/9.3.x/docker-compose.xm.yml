@@ -12,6 +12,11 @@ services:
     environment:
       SA_PASSWORD: ${SQL_SA_PASSWORD}
       ACCEPT_EULA: "Y"
+    depends_on:
+      elasticsearch:
+        condition: service_started
+      kibana:
+        condition: service_started
 
   solr:
     image: ${REGISTRY}sitecore-xm-solr:${SITECORE_VERSION}-nanoserver-${NANOSERVER_VERSION}
@@ -23,10 +28,15 @@ services:
       - "44011:8983"
     environment:
       SOLR_LOG_LEVEL: INFO
+    depends_on:
+      elasticsearch:
+        condition: service_started
+      kibana:
+        condition: service_started
 
   cd:
     image: ${REGISTRY}sitecore-xm-cd:${SITECORE_VERSION}-windowsservercore-${WINDOWSSERVERCORE_VERSION}
-    entrypoint: powershell.exe -Command "& C:\\tools\\entrypoints\\iis\\Production.ps1"
+    entrypoint: powershell.exe -Command "& C:\\tools\\entrypoints\\iis\\Production.ps1 -OutputToELK"
     ports:
       - "44002:80"
     isolation: ${ISOLATION}
@@ -45,10 +55,14 @@ services:
         condition: service_healthy
       solr:
         condition: service_started
+      elasticsearch:
+        condition: service_started
+      kibana:
+        condition: service_started
 
   cm:
     image: ${REGISTRY}sitecore-xm-cm:${SITECORE_VERSION}-windowsservercore-${WINDOWSSERVERCORE_VERSION}
-    entrypoint: powershell.exe -Command "& C:\\tools\\entrypoints\\iis\\Production.ps1"
+    entrypoint: powershell.exe -Command "& C:\\tools\\entrypoints\\iis\\Production.ps1 -OutputToELK"
     ports:
       - "44001:80"
     isolation: ${ISOLATION}
@@ -72,11 +86,16 @@ services:
         condition: service_healthy
       solr:
         condition: service_started
-
+      elasticsearch:
+        condition: service_started
+      kibana:
+        condition: service_started
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:${ELK_Version}
     container_name: elasticsearch
+    # volumes:
+    #   - .\config\elasticsearch:/usr/share/elasticsearch/config/
     environment:
         - node.name=node
         - cluster.name=elasticsearch-default
@@ -89,32 +108,45 @@ services:
     expose:
         - "9200"
     mem_limit: 2gb
+    # healthcheck:
+    #   test: curl -s http://localhost:9200>/dev/null; if ($$ = 52) { echo 0 } else { echo 1 }
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 20
 
   kibana:
       image: docker.elastic.co/kibana/kibana:${ELK_Version}
       container_name: kibana
+      # volumes:
+      #   - .\config\kibana:/usr/share/kibana/config/
       ports:
           - "5601:5601"
       expose:
           - "5601"
       depends_on:
-          - elasticsearch
+        elasticsearch:
+          condition: service_started
       mem_limit: 2gb
+      # healthcheck:
+      #   test: curl -s http://localhost:5601>/dev/null; if ($$ = 52) { echo 0 } else { echo 1 }
+      #   interval: 30s
+      #   timeout: 10s
+      #   retries: 20
 
-  logstash:
-      image: docker.elastic.co/logstash/logstash:${ELK_Version}
-      ports:
-          - "5000:5000/tcp"
-          - "5000:5000/udp"
-          - "9600:9600"
-      depends_on:
-          - elasticsearch
-      mem_limit: 2gb
+  # logstash:
+  #     image: docker.elastic.co/logstash/logstash:${ELK_Version}
+  #     ports:
+  #         - "5000:5000/tcp"
+  #         - "5000:5000/udp"
+  #         - "9600:9600"
+  #     depends_on:
+  #         - elasticsearch
+  #     mem_limit: 2gb
 
 networks:
   default:
     external:
       name: nat
 
-volumes:
-  elasticsearch:
+# volumes:
+#   elasticsearch:

@@ -1,3 +1,8 @@
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory = $false)]
+    [switch]$OutputToELK
+)
 # setup
 $ErrorActionPreference = "STOP"
 
@@ -120,10 +125,17 @@ while ($true)
 # wait for application pool to start
 Wait-WebItemState -IISPath "IIS:\AppPools\DefaultAppPool" -State "Started"
 
-# print ready message
-Write-Host ("$(Get-Date -Format $timeFormat): Sitecore ready!")
-
-# start filebeat.exe in foreground
-& "C:\tools\bin\filebeat\filebeat.exe" -c (Join-Path $PSScriptRoot "\filebeat.yml") modules enable elasticsearch
-& "C:\tools\bin\filebeat\filebeat.exe" -c (Join-Path $PSScriptRoot "\filebeat.yml") setup
-& "C:\tools\bin\filebeat\filebeat.exe" -c (Join-Path $PSScriptRoot "\filebeat.yml")
+if($OutputToELK)
+{
+    # print ready message and intialize FileBeat to output to ELK
+    Write-Host ("$(Get-Date -Format $timeFormat): Sitecore ready with ELK logging!")
+    & "C:\tools\bin\filebeat\filebeat.exe" -c (Join-Path $PSScriptRoot "\filebeat.logstash.yml") modules enable elasticsearch
+    & "C:\tools\bin\filebeat\filebeat.exe" -c (Join-Path $PSScriptRoot "\filebeat.logstash.yml") setup
+    & "C:\tools\bin\filebeat\filebeat.exe" -c (Join-Path $PSScriptRoot "\filebeat.logstash.yml")
+}
+else
+{
+    # print ready message and intialize FileBeat to output to Console
+    Write-Host ("$(Get-Date -Format $timeFormat): Sitecore ready with console logging!")
+    & "C:\tools\bin\filebeat\filebeat.exe" -c (Join-Path $PSScriptRoot "\filebeat.yml")
+}
